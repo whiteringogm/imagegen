@@ -1,5 +1,5 @@
-const CACHE_NAME='imagegen-prompt-vault-v6';
-const APP_SHELL=['./','./index.html','./styles.css','./app.js','./fix-img.js','./manifest.json','./icon.svg'];
+const CACHE_NAME='imagegen-prompt-vault-v7';
+const APP_SHELL=['./','./index.html','./styles.css','./app.js','./fix-img.js','./builder-helper.js','./manifest.json','./icon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
   self.skipWaiting();
@@ -10,8 +10,9 @@ self.addEventListener('activate',event=>{
 });
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
-  const isHtml=event.request.mode==='navigate'||event.request.headers.get('accept')?.includes('text/html');
-  if(isHtml){
+  const accept=event.request.headers.get('accept')||'';
+  const isPage=event.request.mode==='navigate'||accept.includes('text/html');
+  if(isPage){
     event.respondWith(fetch(event.request).then(response=>{
       const copy=response.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy));
