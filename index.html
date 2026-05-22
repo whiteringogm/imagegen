@@ -52,10 +52,14 @@
       <details class="fold" open><summary>項目別プロンプト</summary>
         <label>基本</label><textarea id="charBase" placeholder="年齢、体格、顔立ちなど"></textarea>
         <label>髪</label><textarea id="charHair" placeholder="髪型、前髪、髪色など"></textarea>
-        <label>服</label><textarea id="charOutfit" placeholder="服装"></textarea>
+        <label>服</label><textarea id="charOutfit" placeholder="基本の服装"></textarea>
+        <label>足元</label><textarea id="charFootwear" placeholder="靴、靴下、室内用の足元指定など"></textarea>
         <label>小物</label><textarea id="charAccessories" placeholder="眼鏡、アクセサリーなど"></textarea>
         <label>その他</label><textarea id="charOther" placeholder="必要なら補足"></textarea>
         <label>ネガティブ</label><textarea id="charNegative" placeholder="Negative prompt"></textarea>
+        <label>差し替えパーツ（1行1件：グループ | 名前 | プロンプト）</label><textarea id="charVariants" placeholder="靴 | 室内 | socks only
+靴 | 室外 | black leather shoes
+服 | 冬コート | black long coat over the suit"></textarea>
         <label>タグ（保存用。組み立て時には使わない）</label><input id="charTags" placeholder="anime, main character">
       </details>
       <div class="row"><button class="pri" type="submit">保存</button><button id="cancelCharEdit" type="button" class="hide">編集をやめる</button></div>
@@ -80,7 +84,7 @@
   <div class="grid builder-grid">
     <div class="card stack gap-m"><h2>キャラ選択</h2><div id="builderCharacters" class="stack gap-s"></div></div>
     <div class="card stack gap-m"><h2>共通プロンプト / シーン</h2><p class="muted">保存済みテンプレを選ぶ。自由入力も併用できる。</p><div id="builderScenes" class="stack gap-s"></div><label>自由入力</label><textarea id="builderExtra" placeholder="rainy train station, soft lighting, anime style"></textarea><button id="saveBuilderScene" type="button">自由入力をシーンとして保存</button></div>
-    <div class="card stack gap-m"><h2>出力</h2><p class="muted">キャラタグとネガティブは自動では入れない。</p><textarea id="builderOutput" class="mono"></textarea><div class="row"><button id="buildPrompt" class="pri" type="button">組み立て</button><button id="copyOutput" type="button">コピー</button><button id="saveOutputOnly" type="button">プロンプトだけ保存</button></div></div>
+    <div class="card stack gap-m"><h2>出力</h2><p class="muted">タグは自動では入れない。ネガティブは項目ONのとき入る。</p><textarea id="builderOutput" class="mono"></textarea><div class="row"><button id="buildPrompt" class="pri" type="button">組み立て</button><button id="copyOutput" type="button">コピー</button><button id="saveOutputOnly" type="button">プロンプトだけ保存</button></div></div>
   </div>
 </section>
 <section id="data" class="tab">
