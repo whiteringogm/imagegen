@@ -1,1 +1,94 @@
-<!doctype html><html lang=ja><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=theme-color content='#15151f'><title>Imagegen</title><link rel=manifest href=manifest.json><link rel=icon href=icon.svg><style>:root{color-scheme:dark;--bg:#101018;--p:#19192a;--p2:#24243a;--t:#f6f2ff;--m:#aaa5c0;--a:#a99cff;--b:#f1b9ff;--l:rgba(255,255,255,.13);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 0 0,#30285c,var(--bg) 34rem);color:var(--t)}header,main,nav{padding:18px clamp(14px,4vw,46px)}h1{font-size:clamp(2.2rem,7vw,5rem);margin:.1rem 0;letter-spacing:-.06em}h2{margin:.2rem 0 1rem}.lead,.muted{color:var(--m)}nav{display:flex;gap:8px;overflow:auto;padding-top:0}button{border:1px solid var(--l);background:var(--p2);color:var(--t);border-radius:999px;padding:.7rem 1rem;font-weight:700}button.on,.pri{background:linear-gradient(135deg,var(--a),var(--b));color:#15131f;border:0}.danger{color:#ffb7b7}.tab{display:none}.tab.on{display:block}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));border:1px solid var(--l);border-radius:24px;padding:16px;margin-bottom:14px}input,textarea{width:100%;border:1px solid var(--l);background:rgba(0,0,0,.24);color:var(--t);border-radius:14px;padding:.75rem;font:inherit}textarea{min-height:8rem}label{display:block;margin:.7rem 0 .28rem;color:var(--m)}img.thumb{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:18px;background:#090910}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tag{font-size:.78rem;background:rgba(255,255,255,.1);border:1px solid var(--l);border-radius:999px;padding:.2rem .55rem}.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--t);color:#161523;border-radius:999px;padding:.75rem 1rem;font-weight:800}.hide{display:none}.check{display:flex;gap:8px;border:1px solid var(--l);border-radius:14px;padding:10px;margin:7px 0}.check input{width:auto}.mono{font-family:ui-monospace,Menlo,Consolas,monospace}</style></head><body><header><p class=muted>local PWA / IndexedDB</p><h1>Imagegen</h1><p class=lead>画像・プロンプト・キャラカードを端末内に保存して、生成時にすぐコピーする保管庫。</p><button id=install class='hide'>インストール</button></header><nav><button class='n on' data-t=lib>保存庫</button><button class=n data-t=add>追加</button><button class=n data-t=char>キャラ</button><button class=n data-t=build>組み立て</button><button class=n data-t=data>データ</button></nav><main><section id=lib class='tab on'><div class=card><h2>保存庫</h2><input id=q placeholder='検索。タイトル、タグ、プロンプト'><p class=muted id=count></p></div><div id=list class=grid></div></section><section id=add class=tab><form id=f class=card><h2>画像＋プロンプト</h2><label>画像</label><input id=imgInput type=file accept='image/*'><label>タイトル</label><input id=titleInput placeholder='例：夜の部屋のひかちゃん'><label>プロンプト</label><textarea id=promptInput></textarea><label>タグ（カンマ区切り）</label><input id=tagInput placeholder='ひかちゃん, 夜, アニメ調'><button class=pri type=submit>保存</button></form></section><section id=char class=tab><div class=grid><form id=cf class=card><h2>キャラカード</h2><label>名前</label><input id=cn placeholder='ひかちゃん'><label>固定プロンプト</label><textarea id=cp placeholder='silver short hair, sharp eyes...'></textarea><label>タグ</label><input id=ct placeholder='AI girl, anime style'><button class=pri type=submit>保存</button></form><div class=card><h2>登録済み</h2><div id=chars></div></div></div></section><section id=build class=tab><div class=grid><div class=card><h2>組み立て</h2><div id=pick></div><label>シーン・構図・追加要素</label><textarea id=extra placeholder='rainy train station, two characters, soft lighting'></textarea><button id=make type=button class=pri>生成</button><button id=savep type=button>プロンプトだけ保存</button></div><div class=card><h2>出力</h2><textarea id=out class=mono></textarea><button id=copyout type=button class=pri>コピー</button></div></div></section><section id=data class=tab><div class=grid><div class=card><h2>エクスポート</h2><button id=ex type=button class=pri>JSONを書き出す</button></div><div class=card><h2>インポート</h2><input id=im type=file accept='application/json'><button id=imp type=button>読み込む</button><button id=wipe type=button class=danger>全削除</button></div></div></section></main><div id=toast class='toast hide'></div><script>(()=>{const $=q=>document.querySelector(q),$$=q=>[...document.querySelectorAll(q)],E={toast:$('#toast'),install:$('#install'),list:$('#list'),q:$('#q'),count:$('#count'),f:$('#f'),img:$('#imgInput'),title:$('#titleInput'),prompt:$('#promptInput'),tags:$('#tagInput'),cf:$('#cf'),cn:$('#cn'),cp:$('#cp'),ct:$('#ct'),chars:$('#chars'),pick:$('#pick'),extra:$('#extra'),make:$('#make'),savep:$('#savep'),out:$('#out'),copyout:$('#copyout'),ex:$('#ex'),im:$('#im'),imp:$('#imp'),wipe:$('#wipe')};let db,items=[],chars=[],defer;const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),parseTags=s=>(s||'').split(',').map(x=>x.trim()).filter(Boolean),msg=s=>{E.toast.textContent=s;E.toast.classList.remove('hide');clearTimeout(msg.t);msg.t=setTimeout(()=>E.toast.classList.add('hide'),1600)},esc=s=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));function odb(){return new Promise((ok,ng)=>{let r=indexedDB.open('imagegen-vault',1);r.onupgradeneeded=()=>{let d=r.result;if(!d.objectStoreNames.contains('items'))d.createObjectStore('items',{keyPath:'id'});if(!d.objectStoreNames.contains('chars'))d.createObjectStore('chars',{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>ng(r.error)})}function st(n,m='readonly'){return db.transaction(n,m).objectStore(n)}function all(n){return new Promise((ok,ng)=>{let r=st(n).getAll();r.onsuccess=()=>ok(r.result);r.onerror=()=>ng(r.error)})}function put(n,v){return new Promise((ok,ng)=>{let r=st(n,'readwrite').put(v);r.onsuccess=()=>ok(v);r.onerror=()=>ng(r.error)})}function del(n,id){return new Promise((ok,ng)=>{let r=st(n,'readwrite').delete(id);r.onsuccess=ok;r.onerror=()=>ng(r.error)})}function clr(n){return new Promise((ok,ng)=>{let r=st(n,'readwrite').clear();r.onsuccess=ok;r.onerror=()=>ng(r.error)})}async function load(){items=(await all('items')).sort((a,b)=>b.at-a.at);chars=(await all('chars')).sort((a,b)=>a.name.localeCompare(b.name,'ja'));draw();drawChars()}function objUrl(b){return b?URL.createObjectURL(b):''}async function text(s){try{await navigator.clipboard.writeText(s||'');msg('コピーした')}catch(e){msg('コピー不可')}}function dl(b,n){let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.append(a);a.click();a.remove()}async function png(b){let im=await createImageBitmap(b),c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return new Promise(r=>c.toBlob(r,'image/png'))}async function copyImg(i){if(!i.img)return msg('画像なし');try{let b=i.img.type==='image/png'?i.img:await png(i.img);await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);msg('画像コピー')}catch(e){dl(i.img,'imagegen.png');msg('画像コピー不可。DLした')}}function draw(){let q=E.q.value.toLowerCase(),a=items.filter(i=>[i.title,i.prompt,(i.tags||[]).join(',')].join(' ').toLowerCase().includes(q));E.count.textContent=`${a.length}件`;E.list.innerHTML=a.length?a.map(i=>`<article class=card data-id='${i.id}'><h3>${esc(i.title||'無題')}</h3>${i.img?`<img class=thumb src='${objUrl(i.img)}'>`:''}<p class=muted>${esc((i.prompt||'').slice(0,120))}</p><p>${(i.tags||[]).map(t=>`<span class=tag>${esc(t)}</span>`).join(' ')}</p><div class=row><button type=button data-a=p>プロンプト</button><button type=button data-a=i>画像</button><button type=button data-a=d class=danger>削除</button></div></article>`).join(''):'<div class=card><p class=muted>保存データなし。</p></div>'}function drawChars(){E.chars.innerHTML=chars.length?chars.map(c=>`<div class=card data-c='${c.id}'><h3>${esc(c.name)}</h3><p class=muted>${esc(c.prompt)}</p><p>${(c.tags||[]).map(t=>`<span class=tag>${esc(t)}</span>`).join(' ')}</p><button type=button data-ca=copy>コピー</button><button type=button data-ca=del class=danger>削除</button></div>`).join(''):'<p class=muted>未登録。</p>';E.pick.innerHTML=chars.length?chars.map(c=>`<label class=check><input type=checkbox value='${c.id}'><span><b>${esc(c.name)}</b><br><span class=muted>${esc(c.prompt.slice(0,80))}</span></span></label>`).join(''):'<p class=muted>キャラを登録する。</p>'}function built(){let cs=$$('#pick input:checked').map(x=>chars.find(c=>c.id===x.value)).filter(Boolean);return [cs.map(c=>`${c.name}: ${c.prompt}, ${(c.tags||[]).join(', ')}`).join(String.fromCharCode(10)),E.extra.value].filter(Boolean).join(String.fromCharCode(10,10))}document.addEventListener('click',async e=>{if(e.target.matches('.n')){$$('.n').forEach(b=>b.classList.toggle('on',b===e.target));$$('.tab').forEach(s=>s.classList.toggle('on',s.id===e.target.dataset.t))}let card=e.target.closest('[data-id]');if(card&&e.target.dataset.a){let i=items.find(x=>x.id===card.dataset.id),a=e.target.dataset.a;if(a==='p')text(i.prompt);if(a==='i')copyImg(i);if(a==='d'&&confirm('削除する？')){await del('items',i.id);await load();msg('削除')}}let cc=e.target.closest('[data-c]');if(cc&&e.target.dataset.ca){let c=chars.find(x=>x.id===cc.dataset.c);if(e.target.dataset.ca==='copy')text(`${c.name}: ${c.prompt}`);if(e.target.dataset.ca==='del'&&confirm('削除する？')){await del('chars',c.id);await load();msg('削除')}}});E.q.addEventListener('input',draw);E.f.addEventListener('submit',async e=>{e.preventDefault();try{let file=E.img.files&&E.img.files[0]?E.img.files[0]:null,prompt=E.prompt.value.trim(),title=E.title.value.trim();if(!file&&!prompt)return msg('画像かプロンプトが必要');await put('items',{id:uid(),title:title||'無題',prompt,tags:parseTags(E.tags.value),img:file,at:Date.now()});E.f.reset();await load();msg('保存した')}catch(err){console.error(err);msg('保存失敗')}});E.cf.addEventListener('submit',async e=>{e.preventDefault();try{if(!E.cn.value.trim())return msg('名前が必要');await put('chars',{id:uid(),name:E.cn.value.trim(),prompt:E.cp.value.trim(),tags:parseTags(E.ct.value),at:Date.now()});E.cf.reset();await load();msg('保存した')}catch(err){console.error(err);msg('保存失敗')}});E.make.addEventListener('click',()=>{E.out.value=built();msg('生成')});E.copyout.addEventListener('click',()=>text(E.out.value||built()));E.savep.addEventListener('click',async()=>{let p=E.out.value||built();if(!p)return msg('空');await put('items',{id:uid(),title:'組み立てプロンプト',prompt:p,tags:['prompt'],img:null,at:Date.now()});await load();msg('保存した')});function dataurl(b){return new Promise(r=>{if(!b)return r(null);let fr=new FileReader;fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}E.ex.addEventListener('click',async()=>{let a=[];for(let i of items)a.push({...i,img:null,imgData:await dataurl(i.img)});dl(new Blob([JSON.stringify({items:a,chars},null,2)],{type:'application/json'}),'imagegen-vault.json')});E.imp.addEventListener('click',async()=>{let f=E.im.files[0];if(!f)return msg('JSONなし');let d=JSON.parse(await f.text());for(let i of d.items||[])await put('items',{...i,id:i.id||uid(),img:i.imgData?await fetch(i.imgData).then(r=>r.blob()):null,at:i.at||Date.now()});for(let c of d.chars||[])await put('chars',{...c,id:c.id||uid()});await load();msg('読込')});E.wipe.addEventListener('click',async()=>{if(confirm('全削除する？')){await clr('items');await clr('chars');await load();msg('全削除')}});window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();defer=e;E.install.classList.remove('hide')});E.install.addEventListener('click',async()=>{if(defer){defer.prompt();defer=null;E.install.classList.add('hide')}});if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});odb().then(d=>{db=d;load()}).catch(e=>{console.error(e);msg('DB起動失敗')});})();</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#15151f">
+  <title>Imagegen Prompt Vault</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <p class="muted">local PWA / IndexedDB</p>
+  <h1>Imagegen</h1>
+  <p class="lead">画像・プロンプト・キャラカード・シーンテンプレを端末内に保存して、生成時にすぐ組み立てる保管庫。</p>
+  <div class="row"><span id="status" class="status">起動中</span><button id="install" class="hide">インストール</button></div>
+</header>
+<nav>
+  <button class="nav-btn on" data-tab="library">保存庫</button>
+  <button class="nav-btn" data-tab="item-editor">追加・編集</button>
+  <button class="nav-btn" data-tab="characters">キャラ</button>
+  <button class="nav-btn" data-tab="scenes">シーン</button>
+  <button class="nav-btn" data-tab="builder">組み立て</button>
+  <button class="nav-btn" data-tab="data">データ</button>
+</nav>
+<main>
+<section id="library" class="tab on">
+  <div class="card"><h2>保存庫</h2><input id="librarySearch" placeholder="検索。タイトル、タグ、プロンプト"><p id="libraryCount" class="muted"></p></div>
+  <div id="libraryList" class="grid"></div>
+</section>
+<section id="item-editor" class="tab">
+  <form id="itemForm" class="card stack gap-m">
+    <div class="row between"><h2>画像＋プロンプト</h2><span id="itemMode" class="muted">新規作成</span></div>
+    <input id="itemId" type="hidden">
+    <label>画像</label><input id="itemImage" type="file" accept="image/*">
+    <div id="itemPreviewWrap" class="hide"><img id="itemPreview" class="thumb preview" alt="preview"><div class="row"><button id="removeItemImage" type="button">画像を外す</button></div></div>
+    <label>タイトル</label><input id="itemTitle" placeholder="例：夜の部屋のひかちゃん">
+    <label>プロンプト</label><textarea id="itemPrompt"></textarea>
+    <label>タグ（カンマ区切り）</label><input id="itemTags" placeholder="ひかちゃん, 夜, アニメ調">
+    <div class="row"><button class="pri" type="submit">保存</button><button id="cancelItemEdit" type="button" class="hide">編集をやめる</button></div>
+  </form>
+</section>
+<section id="characters" class="tab">
+  <div class="grid two-col-wide">
+    <form id="charForm" class="card stack gap-m">
+      <div class="row between"><h2>キャラカード</h2><span id="charMode" class="muted">新規作成</span></div>
+      <input id="charId" type="hidden">
+      <label>名前</label><input id="charName" placeholder="ひかちゃん">
+      <label>一括貼り付け</label><textarea id="charRaw" placeholder="既存の長いキャラプロンプトをここに貼って『分解する』"></textarea>
+      <div class="row"><button id="parseCharPrompt" type="button">分解する</button><button id="clearCharRaw" type="button">一括欄を空にする</button></div>
+      <details class="fold" open><summary>項目別プロンプト</summary>
+        <label>基本</label><textarea id="charBase" placeholder="年齢、体格、顔立ちなど"></textarea>
+        <label>髪</label><textarea id="charHair" placeholder="髪型、前髪、髪色など"></textarea>
+        <label>服</label><textarea id="charOutfit" placeholder="服装"></textarea>
+        <label>小物</label><textarea id="charAccessories" placeholder="眼鏡、アクセサリーなど"></textarea>
+        <label>その他</label><textarea id="charOther" placeholder="必要なら補足"></textarea>
+        <label>ネガティブ</label><textarea id="charNegative" placeholder="Negative prompt"></textarea>
+        <label>タグ（保存用。組み立て時には使わない）</label><input id="charTags" placeholder="anime, main character">
+      </details>
+      <div class="row"><button class="pri" type="submit">保存</button><button id="cancelCharEdit" type="button" class="hide">編集をやめる</button></div>
+    </form>
+    <div class="card"><h2>登録済みキャラ</h2><p class="muted">本文はデフォルト折りたたみ。</p><div id="characterList" class="stack gap-s"></div></div>
+  </div>
+</section>
+<section id="scenes" class="tab">
+  <div class="grid two-col-wide">
+    <form id="sceneForm" class="card stack gap-m">
+      <div class="row between"><h2>シーン / 共通プロンプト</h2><span id="sceneMode" class="muted">新規作成</span></div>
+      <input id="sceneId" type="hidden">
+      <label>名前</label><input id="sceneName" placeholder="例：共通画風 / 雨の駅 / 室内光">
+      <label>本文</label><textarea id="scenePrompt" placeholder="毎回使う共通画風やシーンを保存"></textarea>
+      <label>タグ（保存用）</label><input id="sceneTags" placeholder="style, rainy">
+      <div class="row"><button class="pri" type="submit">保存</button><button id="cancelSceneEdit" type="button" class="hide">編集をやめる</button></div>
+    </form>
+    <div class="card"><h2>登録済みシーン</h2><div id="sceneList" class="stack gap-s"></div></div>
+  </div>
+</section>
+<section id="builder" class="tab">
+  <div class="grid builder-grid">
+    <div class="card stack gap-m"><h2>キャラ選択</h2><div id="builderCharacters" class="stack gap-s"></div></div>
+    <div class="card stack gap-m"><h2>共通プロンプト / シーン</h2><p class="muted">保存済みテンプレを選ぶ。自由入力も併用できる。</p><div id="builderScenes" class="stack gap-s"></div><label>自由入力</label><textarea id="builderExtra" placeholder="rainy train station, soft lighting, anime style"></textarea><button id="saveBuilderScene" type="button">自由入力をシーンとして保存</button></div>
+    <div class="card stack gap-m"><h2>出力</h2><p class="muted">キャラタグとネガティブは自動では入れない。</p><textarea id="builderOutput" class="mono"></textarea><div class="row"><button id="buildPrompt" class="pri" type="button">組み立て</button><button id="copyOutput" type="button">コピー</button><button id="saveOutputOnly" type="button">プロンプトだけ保存</button></div></div>
+  </div>
+</section>
+<section id="data" class="tab">
+  <div class="grid"><div class="card stack gap-m"><h2>エクスポート</h2><button id="exportData" class="pri" type="button">JSONを書き出す</button></div><div class="card stack gap-m"><h2>インポート</h2><input id="importFile" type="file" accept="application/json"><button id="importData" type="button">読み込む</button><button id="wipeData" type="button" class="danger">全削除</button></div></div>
+  <div class="card stack gap-m"><h2>デバッグログ</h2><pre id="debugLog" class="log"></pre></div>
+</section>
+</main>
+<div id="toast" class="toast hide"></div>
+<script src="app.js"></script>
+</body>
+</html>
