@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Imagegen icon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a99cff"/>
+      <stop offset="1" stop-color="#f1b9ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#101018"/>
+  <path d="M126 154c0-28 23-51 51-51h158c28 0 51 23 51 51v204c0 28-23 51-51 51H177c-28 0-51-23-51-51V154Z" fill="url(#g)"/>
+  <path d="M178 196h156M178 248h156M178 300h92" stroke="#171321" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="357" cy="346" r="48" fill="#101018"/>
+  <path d="m385 374 42 42" stroke="#f1b9ff" stroke-width="24" stroke-linecap="round"/>
+</svg>
