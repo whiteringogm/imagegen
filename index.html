@@ -84,7 +84,7 @@
   <div class="grid builder-grid">
     <div class="card stack gap-m"><h2>キャラ選択</h2><div id="builderCharacters" class="stack gap-s"></div></div>
     <div class="card stack gap-m"><h2>共通プロンプト / シーン</h2><p class="muted">保存済みテンプレを選ぶ。自由入力も併用できる。</p><div id="builderScenes" class="stack gap-s"></div><label>自由入力</label><textarea id="builderExtra" placeholder="rainy train station, soft lighting, anime style"></textarea><button id="saveBuilderScene" type="button">自由入力をシーンとして保存</button></div>
-    <div class="card stack gap-m"><h2>出力</h2><p class="muted">タグは自動では入れない。ネガティブは項目ONのとき入る。</p><textarea id="builderOutput" class="mono"></textarea><div class="row"><button id="buildPrompt" class="pri" type="button">組み立て</button><button id="copyOutput" type="button">コピー</button><button id="saveOutputOnly" type="button">プロンプトだけ保存</button></div></div>
+    <div class="card stack gap-m"><h2>出力</h2><p class="muted">タグは自動では入れない。ネガティブは一番最後に出す。</p><textarea id="builderOutput" class="mono"></textarea><div class="row"><button id="buildPrompt" class="pri" type="button">組み立て</button><button id="copyOutput" type="button">コピー</button><button id="saveOutputOnly" type="button">プロンプトだけ保存</button></div></div>
   </div>
 </section>
 <section id="data" class="tab">
@@ -95,5 +95,6 @@
 <div id="toast" class="toast hide"></div>
 <script src="app.js"></script>
 <script src="fix-img.js"></script>
+<script src="builder-helper.js"></script>
 </body>
 </html>
