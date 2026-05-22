@@ -1,0 +1,17 @@
+{
+  "name": "Imagegen Prompt Vault",
+  "short_name": "Imagegen",
+  "description": "Local prompt and image vault for image generation.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101018",
+  "theme_color": "#15151f",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
