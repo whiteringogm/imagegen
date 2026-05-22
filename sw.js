@@ -1,4 +1,4 @@
-const CACHE_NAME='imagegen-prompt-vault-v7';
+const CACHE_NAME='imagegen-prompt-vault-v8';
 const APP_SHELL=['./','./index.html','./styles.css','./app.js','./fix-img.js','./builder-helper.js','./manifest.json','./icon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
