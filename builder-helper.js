@@ -2,6 +2,7 @@
 const DB_NAME='imagegen-vault';
 const DB_VERSION=2;
 const POS_KEYS=['base','hair','outfit','footwear','accessories','other'];
+const REQUEST_KEY='imagegen-request-prompt-v1';
 let dbPromise=null;
 function $(q){return document.querySelector(q)}
 function $$(q){return [...document.querySelectorAll(q)]}
@@ -19,28 +20,9 @@ function openDb(){
   });
   return dbPromise;
 }
-function getAll(db,name){
-  return new Promise((resolve,reject)=>{
-    const req=db.transaction(name).objectStore(name).getAll();
-    req.onsuccess=()=>resolve(req.result||[]);
-    req.onerror=()=>reject(req.error);
-  });
-}
-function putItem(db,item){
-  return new Promise((resolve,reject)=>{
-    const req=db.transaction('items','readwrite').objectStore('items').put(item);
-    req.onsuccess=()=>resolve();
-    req.onerror=()=>reject(req.error);
-  });
-}
-function toast(text){
-  const el=$('#toast');
-  if(!el)return;
-  el.textContent=text;
-  el.classList.remove('hide');
-  clearTimeout(toast.t);
-  toast.t=setTimeout(()=>el.classList.add('hide'),1700);
-}
+function getAll(db,name){return new Promise((resolve,reject)=>{const req=db.transaction(name).objectStore(name).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)})}
+function putItem(db,item){return new Promise((resolve,reject)=>{const req=db.transaction('items','readwrite').objectStore('items').put(item);req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error)})}
+function toast(text){const el=$('#toast');if(!el)return;el.textContent=text;el.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hide'),1700)}
 function splitRaw(raw=''){
   const text=String(raw||'').trim();
   const out={base:'',hair:'',outfit:'',footwear:'',accessories:'',other:'',negative:''};
@@ -51,22 +33,12 @@ function splitRaw(raw=''){
   marks.sort((a,b)=>a.idx-b.idx);
   if(!marks.length){out.base=text;return out}
   out.base=text.slice(0,marks[0].idx).trim();
-  marks.forEach((mark,i)=>{
-    const start=mark.idx+mark.label.length;
-    const end=i+1<marks.length?marks[i+1].idx:text.length;
-    out[mark.key]=text.slice(start,end).trim();
-  });
+  marks.forEach((mark,i)=>{const start=mark.idx+mark.label.length;const end=i+1<marks.length?marks[i+1].idx:text.length;out[mark.key]=text.slice(start,end).trim()});
   return out;
 }
 function normChar(c={}){
   const s=c.sections?{...c.sections}:splitRaw(c.prompt||'');
-  return {
-    ...c,
-    id:c.id||uid(),
-    name:c.name||'無名キャラ',
-    sections:{base:s.base||'',hair:s.hair||'',outfit:s.outfit||'',footwear:s.footwear||'',accessories:s.accessories||'',other:s.other||'',negative:s.negative||c.negative||''},
-    variants:Array.isArray(c.variants)?c.variants:[]
-  };
+  return {...c,id:c.id||uid(),name:c.name||'無名キャラ',sections:{base:s.base||'',hair:s.hair||'',outfit:s.outfit||'',footwear:s.footwear||'',accessories:s.accessories||'',other:s.other||'',negative:s.negative||c.negative||''},variants:Array.isArray(c.variants)?c.variants:[]};
 }
 async function buildPromptCharacterNegative(){
   const db=await openDb();
@@ -77,31 +49,31 @@ async function buildPromptCharacterNegative(){
     const c=chars.find(x=>x.id===input.value);
     if(!c)return;
     const parts=[];
-    POS_KEYS.forEach(key=>{
-      const toggle=$(`[data-role="sec"][data-char="${c.id}"][data-sec="${key}"]`);
-      if(toggle&&toggle.checked&&c.sections[key])parts.push(c.sections[key]);
-    });
-    (c.variants||[]).forEach((variant,index)=>{
-      const toggle=$(`[data-role="var"][data-char="${c.id}"][data-var="${index}"]`);
-      if(toggle&&toggle.checked&&variant.prompt)parts.push(variant.prompt);
-    });
+    POS_KEYS.forEach(key=>{const toggle=$(`[data-role="sec"][data-char="${c.id}"][data-sec="${key}"]`);if(toggle&&toggle.checked&&c.sections[key])parts.push(c.sections[key])});
+    (c.variants||[]).forEach((variant,index)=>{const toggle=$(`[data-role="var"][data-char="${c.id}"][data-var="${index}"]`);if(toggle&&toggle.checked&&variant.prompt)parts.push(variant.prompt)});
     const negToggle=$(`[data-role="sec"][data-char="${c.id}"][data-sec="negative"]`);
     if(negToggle&&negToggle.checked&&c.sections.negative)parts.push(`Negative prompt: ${c.sections.negative}`);
     if(parts.length)blocks.push([`${c.name}:`,...parts].join('\n'));
   });
-  $$('[data-role="scene"]:checked').forEach(input=>{
-    const scene=scenes.find(x=>x.id===input.value);
-    if(scene&&scene.prompt)blocks.push(scene.prompt);
-  });
+  $$('[data-role="scene"]:checked').forEach(input=>{const scene=scenes.find(x=>x.id===input.value);if(scene&&scene.prompt)blocks.push(scene.prompt)});
   const extra=$('#builderExtra')?.value.trim();
   if(extra)blocks.push(extra);
   const commonNegative=$('#builderCommonNegative')?.value.trim();
   if(commonNegative)blocks.push(`Negative prompt: ${commonNegative}`);
   return blocks.join('\n\n');
 }
-async function copyText(text){
-  await navigator.clipboard.writeText(text||'');
-  toast('コピーした');
+async function copyText(text){await navigator.clipboard.writeText(text||'');toast('コピーした')}
+function injectCompactLibraryCss(){
+  if($('#compactLibraryCss'))return;
+  const style=document.createElement('style');
+  style.id='compactLibraryCss';
+  style.textContent=`#libraryList{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#libraryList .card{padding:8px;border-radius:16px;min-width:0;margin-bottom:0}#libraryList .card h3{font-size:.78rem;line-height:1.18;margin:.2rem 0 .45rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#libraryList .thumb{border-radius:10px;aspect-ratio:1/1}#libraryList .card p{display:none}#libraryList .actions{gap:4px;margin-top:6px}#libraryList .actions button{font-size:.64rem;padding:.32rem .42rem;line-height:1.05;flex:1 1 42%}@media(max-width:360px){#libraryList{gap:6px}#libraryList .card{padding:6px}#libraryList .actions button{font-size:.58rem;padding:.28rem .34rem}}`;
+  document.head.append(style);
+}
+function fixVariantPlaceholder(){
+  const v=$('#charVariants');
+  if(!v)return;
+  v.placeholder='足元 | 室内 | socks only\n足元 | 室外 | black leather shoes\n服 | 冬コート | black long coat over the suit';
 }
 function injectCommonNegativeField(){
   if($('#builderCommonNegative'))return;
@@ -120,43 +92,33 @@ function injectCommonNegativeField(){
 }
 function installBuilderOverride(){
   injectCommonNegativeField();
-  const buildBtn=$('#buildPrompt');
-  const copyBtn=$('#copyOutput');
-  const saveBtn=$('#saveOutputOnly');
-  const out=$('#builderOutput');
-  if(buildBtn)buildBtn.onclick=async()=>{
-    out.value=await buildPromptCharacterNegative();
-    toast('組み立てた');
-  };
-  if(copyBtn)copyBtn.onclick=async()=>{
-    const text=out.value||await buildPromptCharacterNegative();
-    await copyText(text);
-  };
-  if(saveBtn)saveBtn.onclick=async()=>{
-    const prompt=out.value||await buildPromptCharacterNegative();
-    if(!prompt.trim())return toast('空');
-    const db=await openDb();
-    await putItem(db,{id:uid(),title:'組み立てプロンプト',prompt,tags:['prompt'],imageBlob:null,imageData:null,img:null,createdAt:Date.now(),updatedAt:Date.now()});
-    toast('保存した');
-  };
+  const buildBtn=$('#buildPrompt'),copyBtn=$('#copyOutput'),saveBtn=$('#saveOutputOnly'),out=$('#builderOutput');
+  if(buildBtn)buildBtn.onclick=async()=>{out.value=await buildPromptCharacterNegative();toast('組み立てた')};
+  if(copyBtn)copyBtn.onclick=async()=>{const text=out.value||await buildPromptCharacterNegative();await copyText(text)};
+  if(saveBtn)saveBtn.onclick=async()=>{const prompt=out.value||await buildPromptCharacterNegative();if(!prompt.trim())return toast('空');const db=await openDb();await putItem(db,{id:uid(),title:'組み立てプロンプト',prompt,tags:['prompt'],imageBlob:null,imageData:null,img:null,createdAt:Date.now(),updatedAt:Date.now()});toast('保存した')};
 }
-const requestText=`お気に入りの画像または既存プロンプトをもとに、Imagegen Prompt Vault のキャラカードに貼りやすい形へ整理してください。\n\n目的：画像生成で同じキャラを再現しやすくしつつ、あとから髪・服・足元・小物を差し替えやすくすること。\n\n出力ルール：\n- 推測できる範囲でよい。確信がない部分は控えめに書く。\n- 英語の画像生成プロンプトとして使いやすい短文・句で書く。\n- タグではなく、キャラカード本文に入れる内容として整理する。\n- 髪、服、足元、小物は必ず分ける。\n- ネガティブは Negative prompt にまとめる。\n- 差し替え候補があれば「グループ | 名前 | プロンプト」の形で出す。\n- 足元の差し替えは必ずグループ名を「足元」にする。\n\n出力フォーマット：\n名前:\n\n基本:\n\nHair:\n\nOutfit:\n\nFootwear:\n\nAccessories:\n\nOther:\n\nNegative prompt:\n\n差し替えパーツ:\n服 | 室内 | \n服 | 室外 | \n足元 | 室内 | \n足元 | 室外 | \n\n素材：\nここに画像またはプロンプトを貼ります。`;
+const defaultRequestText=`お気に入りの画像または既存プロンプトをもとに、Imagegen Prompt Vault のキャラカードに貼りやすい形へ整理してください。\n\n目的：画像生成で同じキャラを再現しやすくしつつ、あとから髪・服・足元・小物を差し替えやすくすること。\n\n出力ルール：\n- 推測できる範囲でよい。確信がない部分は控えめに書く。\n- 英語の画像生成プロンプトとして使いやすい短文・句で書く。\n- タグではなく、キャラカード本文に入れる内容として整理する。\n- 髪、服、足元、小物は必ず分ける。\n- ネガティブは Negative prompt にまとめる。\n- 差し替え候補があれば「グループ | 名前 | プロンプト」の形で出す。\n- 足元の差し替えは必ずグループ名を「足元」にする。\n\n出力フォーマット：\n名前:\n\n基本:\n\nHair:\n\nOutfit:\n\nFootwear:\n\nAccessories:\n\nOther:\n\nNegative prompt:\n\n差し替えパーツ:\n服 | 室内 | \n服 | 室外 | \n足元 | 室内 | \n足元 | 室外 | \n\n素材：\nここに画像またはプロンプトを貼ります。`;
+function currentRequestText(){return localStorage.getItem(REQUEST_KEY)||defaultRequestText}
 function injectRequestCard(){
   const target=$('#characters .grid');
   if(!target||$('#requestPromptCopy'))return;
   const card=document.createElement('div');
   card.className='card stack gap-m';
   card.style.gridColumn='1 / -1';
-  card.innerHTML=`<h2>AIへの依頼文</h2><p class="muted">画像や既存プロンプトをキャラカード用に整理してもらうための文。</p><textarea id="requestPromptText" class="mono" readonly></textarea><div class="row"><button id="requestPromptCopy" type="button">依頼文をコピー</button></div>`;
+  card.innerHTML=`<h2>AIへの依頼文</h2><p class="muted">編集して保存可能。画像や既存プロンプトをキャラカード用に整理してもらうための文。</p><textarea id="requestPromptText" class="mono"></textarea><div class="row"><button id="requestPromptCopy" type="button">依頼文をコピー</button><button id="requestPromptSave" type="button">この文面を保存</button><button id="requestPromptReset" type="button">初期文に戻す</button></div>`;
   target.prepend(card);
-  $('#requestPromptText').value=requestText;
-  $('#requestPromptCopy').onclick=()=>copyText(requestText);
+  const area=$('#requestPromptText');
+  area.value=currentRequestText();
+  $('#requestPromptCopy').onclick=()=>copyText(area.value);
+  $('#requestPromptSave').onclick=()=>{localStorage.setItem(REQUEST_KEY,area.value);toast('依頼文を保存した')};
+  $('#requestPromptReset').onclick=()=>{area.value=defaultRequestText;localStorage.removeItem(REQUEST_KEY);toast('初期文に戻した')};
 }
 function init(){
+  injectCompactLibraryCss();
+  fixVariantPlaceholder();
   installBuilderOverride();
   injectRequestCard();
-  setTimeout(installBuilderOverride,500);
-  setTimeout(injectRequestCard,500);
+  setTimeout(()=>{injectCompactLibraryCss();fixVariantPlaceholder();installBuilderOverride();injectRequestCard()},500);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
